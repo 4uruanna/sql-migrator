@@ -1,0 +1,21 @@
+{
+  "name": "@jackofblades/sql-migrator",
+  "version": "0.1.4",
+  "license": "Apache-2.0",
+  "exports": "./source/cli.ts",
+  "tasks": {
+    "migrate": "cd test/ && deno run --allow-env --env-file --allow-net --allow-read ../source/cli.ts migrate",
+    "rollback": "cd test/ && deno run --allow-env --env-file --allow-net --allow-read ../source/cli.ts rollback",
+    "status": "cd test/ && deno run --allow-env --env-file --allow-net --allow-read ../source/cli.ts status",
+    "help": "cd test/ && deno run ../source/cli.ts help"
+  },
+  "imports": {
+    "@jackofblades/di": "jsr:@jackofblades/di@^0.1.1",
+    "@jackofblades/sql-connector": "jsr:@jackofblades/sql-connector@^0.1.7",
+    "@jackofblades/sql-query-builder": "jsr:@jackofblades/sql-query-builder@^0.1.7",
+    "@std/assert": "jsr:@std/assert@^1.0.19",
+    "@std/fs": "jsr:@std/fs@^1.0.24",
+    "@std/path": "jsr:@std/path@^1.1.5",
+    "zod": "npm:zod@^4.4.3"
+  }
+}
