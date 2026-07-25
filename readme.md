@@ -1,7 +1,14 @@
-# @jackofblades/sql-migrator
+# @4uruanna/sql-migrator
 
-## Example
+Lightweight CLI to migrate SQL in Postgres.
 
-```shell
-deno run jsr:@jackofblades/sql-migrator help
+## Configuration
+
+```
+DATABASE_NAME=ma_base
+DATABASE_USERNAME=user
+DATABASE_PASSWORD=pass
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_SCHEMA=public
 ```

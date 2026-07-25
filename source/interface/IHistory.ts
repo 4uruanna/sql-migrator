@@ -1,6 +1,4 @@
-import type { IModel } from "@jackofblades/sql-connector";
-
-export interface IHistory extends IModel {
+export interface IHistory {
   id?: number;
   timestamp: Date;
   name: string;

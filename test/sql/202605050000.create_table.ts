@@ -1,18 +1,11 @@
-import { Migration } from "../../source/interface/IMigration.ts";
-
-class CreateTableExample extends Migration {
-  public up(): string {
-    return `
-    CREATE TABLE test (
+export default {
+  up: () => `
+    CREATE TABLE public.test (
       id    SERIAL PRIMARY KEY,
       name  VARCHAR(255) NOT NULL
     );
-    `;
-  }
+    `,
 
-  public down(): string {
-    return `DROP TABLE test;`;
-  }
+  down: () => `DROP TABLE public.test;`
 }
 
-export default new CreateTableExample();

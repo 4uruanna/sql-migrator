@@ -1,5 +1,5 @@
-import type { IMigration, Migration } from "../interface/IMigration.ts";
-import type { Database, IClient } from "@jackofblades/sql-connector";
+import type { IMigration } from "../interface/IMigration.ts";
+import type { Database, Client } from "@4uruanna/sql-connector";
 import * as fs from "@std/fs";
 import * as path from "@std/path";
 import * as zod from "zod";
@@ -8,41 +8,47 @@ import type { HistoryRepository } from "./HistoryRepository.ts";
 import type { IHistory } from "../interface/IHistory.ts";
 
 export abstract class DatabaseMigrator {
-  protected readonly _database: Database;
-
-  protected readonly _repository: HistoryRepository;
-
-  protected constructor(database: Database, repository: HistoryRepository) {
-    this._database = database;
-    this._repository = repository;
+  protected constructor(
+    private readonly _database: Database,
+    private readonly _repository: HistoryRepository,
+    private readonly _schema: string
+  ) {
   }
-
+  // Exemple dans DatabaseMigrator.ts
   public async migrate(migrations: IMigration[]): Promise<void> {
-    let client: IClient|undefined;
+    const client = await this._database.createClient();
+    const failedMigrations: string[] = [];
 
     for (const migration of migrations) {
+      if (CONSTANTS.MIGRATION_FILENAME_REGEX.test(migration.filename) === false) {
+        throw new Error(`Invalid migration filename: ${migration.filename}`);
+      }
+      console.table([migration], ["filename"]);
       try {
-      client = await this._database.createClient();
-      console.table([migration.history], ["timestamp", "name"]);
-      await client.query(migration.migration.up());
-      await client.dispose();
-      client = undefined;
-      await this._repository.insert(migration.history);
+        await client.query("BEGIN");
+        await client.query(migration.migration.up());
+        await this._repository.insert(migration.history, client);
+        await client.query("COMMIT");
       } catch (error) {
-        console.error(error);
-      } finally {
-        await client?.dispose();
+        await client.query("ROLLBACK");
+        failedMigrations.push(migration.filename);
+        await client.dispose();
+        throw new Error(
+          `Migration failed: ${migration.filename}\nError: ${(error as Error).message}`,
+        );
       }
     }
+
+    await client.dispose();
   }
 
   public async rollback(migrations: IMigration[]): Promise<void> {
-    let client: IClient|undefined;
+    let client: Client | undefined;
 
     for (const migration of migrations) {
       try {
-        client = await this._database.createClient();
         console.table([migration.history], ["timestamp", "name"]);
+        client = await this._database.createClient();
         await client.query(migration.migration.down());
         await client.dispose();
         client = undefined;
@@ -64,7 +70,7 @@ export abstract class DatabaseMigrator {
       Deno.mkdirSync(CONSTANTS.DIRECTORY.SQL);
     }
 
-    await this._repository.initialize();
+    await this._repository.initialize(this._schema);
 
     return await this._loadMigrations();
   }
@@ -79,7 +85,7 @@ export abstract class DatabaseMigrator {
       if (file.isFile && file.name.toLowerCase().endsWith(".ts")) {
         const absolute: string = path.join(CONSTANTS.DIRECTORY.SQL, file.name);
         const href: string = path.toFileUrl(absolute).href;
-        const migration = (await import(href)).default as Migration;
+        const migration = (await import(href)).default as { up(): string, down(): string };
 
         result.push({
           filename: zod.string().min(16).parse(file.name),
@@ -93,7 +99,9 @@ export abstract class DatabaseMigrator {
       }
     }
 
-    return result.sort((a, b) => a.history.timestamp.valueOf() - b.history.timestamp.valueOf());
+    return result.sort((a, b) =>
+      a.history.timestamp.valueOf() - b.history.timestamp.valueOf()
+    );
   }
 
   private _checkTimestamp(filename: string): Date {

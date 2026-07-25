@@ -1,7 +1,7 @@
 import CONSTANTS from "../constant.ts";
-import type { IQuery, PgQueryBuilder } from "@jackofblades/sql-query-builder";
+import type { IQuery, PgQueryBuilder } from "@4uruanna/sql-query-builder";
 import type { IHistory } from "../interface/IHistory.ts";
-import type { IClient, PgDatabase } from "@jackofblades/sql-connector";
+import type { Client, PgDatabase } from "@4uruanna/sql-connector";
 import { HistoryRepository } from "../abstract/HistoryRepository.ts";
 
 export class PgHistoryRepository extends HistoryRepository {
@@ -17,8 +17,7 @@ export class PgHistoryRepository extends HistoryRepository {
     this._queryBuilder = queryBuilder;
   }
 
-  public override async insert(history: IHistory): Promise<void> {
-    const client: IClient = await this._database.createClient();
+  public override async insert(history: IHistory, client: Client): Promise<void> {
     const query: IQuery = this._queryBuilder
       .insert()
       .into(CONSTANTS.TABLE)
@@ -27,13 +26,13 @@ export class PgHistoryRepository extends HistoryRepository {
       .build();
 
     try {
-      const result = await client.query<IHistory>(
+      const queryResult = await client.query<IHistory>(
         query.query,
-        query.parameters.map((v) => v.value)
+        query.parameters.map((v) => v.value),
       );
 
-      if (result.rowCount) {
-        Object.assign(history, result.rows[0]);
+      if (queryResult.rows.length) {
+        Object.assign(history, queryResult.rows[0]);
       }
     } catch (error) {
       console.log(error);
@@ -55,7 +54,7 @@ export class PgHistoryRepository extends HistoryRepository {
     try {
       const queryResult = await client.query<IHistory>(query.query);
 
-      if (queryResult.rowCount) {
+      if (queryResult.rows.length) {
         result.push(...queryResult.rows);
       }
     } catch (error) {
@@ -68,10 +67,10 @@ export class PgHistoryRepository extends HistoryRepository {
     return result;
   }
 
-  public override async initialize(): Promise<void> {
-    const client: IClient = await this._database.createClient();
+  public override async initialize(schema: string): Promise<void> {
+    const client: Client = await this._database.createClient();
     const query: string = "" +
-      `CREATE TABLE IF NOT EXISTS ${CONSTANTS.TABLE} (` +
+      `CREATE TABLE IF NOT EXISTS ${schema}.${CONSTANTS.TABLE} (` +
       "id SERIAL PRIMARY KEY," +
       "name VARCHAR(255) UNIQUE NOT NULL," +
       "timestamp TIMESTAMP UNIQUE NOT NULL," +
@@ -90,7 +89,7 @@ export class PgHistoryRepository extends HistoryRepository {
   }
 
   public override async deleteByTimestamp(timestamp: Date): Promise<void> {
-    const client: IClient = await this._database.createClient();
+    const client: Client = await this._database.createClient();
     const query: IQuery = this._queryBuilder
       .delete()
       .setParameter(timestamp)
@@ -124,7 +123,7 @@ export class PgHistoryRepository extends HistoryRepository {
     try {
       const queryResult = await client.query<IHistory>(query.query);
 
-      if (queryResult.rowCount) {
+      if (queryResult.rows.length) {
         result = queryResult.rows[0];
       }
     } catch (error) {

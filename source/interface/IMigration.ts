@@ -1,12 +1,7 @@
-import { IHistory } from "./IHistory.ts";
-
-export abstract class Migration {
-  abstract up(): string;
-  abstract down(): string;
-}
+import type { IHistory } from "./IHistory.ts";
 
 export interface IMigration {
   filename: string;
-  migration: Migration;
+  migration: { up(): string, down(): string };
   history: IHistory;
 }

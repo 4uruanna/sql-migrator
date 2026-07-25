@@ -1,0 +1,11 @@
+{
+  "tasks": {
+    "migrate": "deno run -A --env-file @jackofblades/sql-migrator migrate",
+    "rollback": "deno run -A --env-file @jackofblades/sql-migrator rollback",
+    "status": "deno run -A --env-file @jackofblades/sql-migrator status"
+  },
+  "imports": {
+    "@jackofblades/sql-migrator": "jsr:@jackofblades/sql-migrator@^0.1.4",
+    "@std/assert": "jsr:@std/assert@1"
+  }
+}

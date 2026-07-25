@@ -1,3 +1,4 @@
+import type { Client } from "@4uruanna/sql-connector";
 import type { IHistory } from "../interface/IHistory.ts";
 
 export abstract class HistoryRepository {
@@ -5,9 +6,9 @@ export abstract class HistoryRepository {
 
   abstract findLast(): Promise<IHistory | null>;
 
-  abstract insert(history: IHistory): Promise<void>;
+  abstract insert(history: IHistory, client: Client): Promise<void>;
 
   abstract deleteByTimestamp(timestamp: Date): Promise<void>;
 
-  abstract initialize(): Promise<void>;
+  abstract initialize(schema: string): Promise<void>;
 }
