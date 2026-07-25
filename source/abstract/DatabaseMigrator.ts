@@ -7,14 +7,33 @@ import CONSTANTS from "../constant.ts";
 import type { HistoryRepository } from "./HistoryRepository.ts";
 import type { IHistory } from "../interface/IHistory.ts";
 
+/**
+ * Abstract base class for database migration operations.
+ * This class provides the core functionality for executing SQL migrations,
+ * including migrate, rollback, and history operations.
+ */
 export abstract class DatabaseMigrator {
+  /**
+   * Creates a new DatabaseMigrator instance.
+   * @param _database - The database connection instance.
+   * @param _repository - The history repository instance for storing migration records.
+   * @param _schema - The database schema where migrations should be applied.
+   */
   protected constructor(
     private readonly _database: Database,
     private readonly _repository: HistoryRepository,
     private readonly _schema: string
   ) {
   }
-  // Exemple dans DatabaseMigrator.ts
+
+  /**
+   * Executes the up migrations for the given list of migrations.
+   * Each migration is executed in a transaction to ensure atomicity.
+   * If a migration fails, all changes are rolled back.
+   * @param migrations - Array of migrations to execute.
+   * @returns A promise that resolves when all migrations are executed.
+   * @throws Error if any migration fails.
+   */
   public async migrate(migrations: IMigration[]): Promise<void> {
     const client = await this._database.createClient();
     const failedMigrations: string[] = [];
@@ -42,6 +61,12 @@ export abstract class DatabaseMigrator {
     await client.dispose();
   }
 
+  /**
+   * Executes the down migrations (rollbacks) for the given list of migrations.
+   * Each migration is rolled back individually.
+   * @param migrations - Array of migrations to rollback (should be in reverse order).
+   * @returns A promise that resolves when all rollbacks are complete.
+   */
   public async rollback(migrations: IMigration[]): Promise<void> {
     let client: Client | undefined;
 
@@ -61,10 +86,20 @@ export abstract class DatabaseMigrator {
     }
   }
 
+  /**
+   * Retrieves the migration history from the database.
+   * @returns A promise that resolves to an array of IHistory objects.
+   */
   public history(): Promise<IHistory[]> {
     return this._repository.findAll();
   }
 
+  /**
+   * Initializes the migrator by ensuring the SQL directory exists
+   * and the history table is created in the database.
+   * @returns A promise that resolves to an array of IMigration objects
+   *          that can be migrated or rolled back.
+   */
   public async initialize(): Promise<IMigration[]> {
     if (fs.existsSync(CONSTANTS.DIRECTORY.SQL) === false) {
       Deno.mkdirSync(CONSTANTS.DIRECTORY.SQL);
@@ -75,6 +110,13 @@ export abstract class DatabaseMigrator {
     return await this._loadMigrations();
   }
 
+  /**
+   * Loads all migration files from the SQL directory.
+   * Each file is expected to export a default object with up() and down() methods.
+   * @returns A promise that resolves to an array of IMigration objects,
+   *          sorted by timestamp in ascending order.
+   * @private
+   */
   private async _loadMigrations(): Promise<IMigration[]> {
     const result: IMigration[] = [];
     const fileArray: IteratorObject<Deno.DirEntry> = Deno.readDirSync(
@@ -104,6 +146,14 @@ export abstract class DatabaseMigrator {
     );
   }
 
+  /**
+   * Extracts and validates the timestamp from a migration filename.
+   * The timestamp is expected to be in the format: YYYYMMDDHHMM
+   * @param filename - The migration filename to parse.
+   * @returns The Date object representing the timestamp.
+   * @throws Error if the timestamp is invalid.
+   * @private
+   */
   private _checkTimestamp(filename: string): Date {
     const date: string = zod
       .number()

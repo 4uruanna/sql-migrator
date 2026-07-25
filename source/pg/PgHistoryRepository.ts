@@ -1,3 +1,8 @@
+/**
+ * PostgreSQL implementation of the HistoryRepository.
+ * This class provides concrete implementations for storing and retrieving
+ * migration history records in a PostgreSQL database.
+ */
 import CONSTANTS from "../constant.ts";
 import type { IQuery, PgQueryBuilder } from "@4uruanna/sql-query-builder";
 import type { IHistory } from "../interface/IHistory.ts";
@@ -5,9 +10,21 @@ import type { Client, PgDatabase } from "@4uruanna/sql-connector";
 import { HistoryRepository } from "../abstract/HistoryRepository.ts";
 
 export class PgHistoryRepository extends HistoryRepository {
+  /**
+   * The query builder instance for constructing SQL queries.
+   */
   private readonly _queryBuilder: PgQueryBuilder;
+
+  /**
+   * The database connection instance.
+   */
   private readonly _database: PgDatabase;
 
+  /**
+   * Creates a new PgHistoryRepository instance.
+   * @param database - The PostgreSQL database connection.
+   * @param queryBuilder - The query builder for constructing SQL queries.
+   */
   public constructor(
     database: PgDatabase,
     queryBuilder: PgQueryBuilder,
@@ -17,6 +34,13 @@ export class PgHistoryRepository extends HistoryRepository {
     this._queryBuilder = queryBuilder;
   }
 
+  /**
+   * Inserts a new migration history record into the database.
+   * @param history - The history record to insert.
+   * @param client - The database client to use for the insertion.
+   * @returns A promise that resolves when the insertion is complete.
+   * @throws Error if the insertion fails.
+   */
   public override async insert(history: IHistory, client: Client): Promise<void> {
     const query: IQuery = this._queryBuilder
       .insert()
@@ -42,6 +66,11 @@ export class PgHistoryRepository extends HistoryRepository {
     }
   }
 
+  /**
+   * Retrieves all migration history records from the database.
+   * @returns A promise that resolves to an array of IHistory objects,
+   *          ordered by timestamp in ascending order.
+   */
   public override async findAll(): Promise<IHistory[]> {
     const client = await this._database.createClient();
     const result: IHistory[] = [];
@@ -67,6 +96,13 @@ export class PgHistoryRepository extends HistoryRepository {
     return result;
   }
 
+  /**
+   * Initializes the migration history table in the database.
+   * Creates the sql_history table with the required schema.
+   * @param schema - The database schema where the history table should be created.
+   * @returns A promise that resolves when the table is created.
+   * @throws Error if the table creation fails.
+   */
   public override async initialize(schema: string): Promise<void> {
     const client: Client = await this._database.createClient();
     const query: string = "" +
@@ -88,6 +124,12 @@ export class PgHistoryRepository extends HistoryRepository {
     }
   }
 
+  /**
+   * Deletes a migration history record by its timestamp.
+   * @param timestamp - The timestamp of the record to delete.
+   * @returns A promise that resolves when the deletion is complete.
+   * @throws Error if the deletion fails.
+   */
   public override async deleteByTimestamp(timestamp: Date): Promise<void> {
     const client: Client = await this._database.createClient();
     const query: IQuery = this._queryBuilder
@@ -110,6 +152,11 @@ export class PgHistoryRepository extends HistoryRepository {
     }
   }
 
+  /**
+   * Retrieves the most recent migration history record.
+   * @returns A promise that resolves to the last IHistory object,
+   *          or null if no records exist.
+   */
   public override async findLast(): Promise<IHistory | null> {
     const client = await this._database.createClient();
     let result: IHistory | null = null;
